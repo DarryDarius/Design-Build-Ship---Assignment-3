@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import type { Session } from "./week";
+import { todayISO, type Session } from "./week";
 
 // Everything Study Log remembers lives under one localStorage key.
 const KEY = "study-log:v1";
@@ -127,4 +127,15 @@ export function markVisit(today: string) {
 /** The most recently logged session, for prefilling and "Log again". */
 export function lastSession(sessions: Session[]) {
   return sessions.reduce<Session | undefined>((latest, s) => (!latest || s.createdAt > latest.createdAt ? s : latest), undefined);
+}
+
+// Today's date is read in the browser only (never during the prerender),
+// and refreshes if the tab stays open past midnight.
+function subscribeToday(listener: () => void) {
+  const timer = window.setInterval(listener, 60_000);
+  return () => window.clearInterval(timer);
+}
+
+export function useToday(): string | null {
+  return useSyncExternalStore(subscribeToday, todayISO, () => null);
 }
