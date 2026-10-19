@@ -62,7 +62,13 @@ Everything lives in the browser's `localStorage` under `study-log:v1`. There are
 
 ## Accessibility
 
-_To be filled in after the accessibility pass._
+I had the agent check the production build in a real browser with Playwright, at 390px and 1440px:
+
+- **Keyboard:** every page was tabbed through and every stop shows a visible focus ring. The whole task works by keyboard: type into the form, press Enter to save, and Undo from the toast.
+- **Labels:** every input and select has a real `<label>`. Hints and errors are tied to their field with `aria-describedby`, and invalid fields get `aria-invalid`. After a failed submit, focus moves to the first error.
+- **Contrast:** a script measured every visible piece of text against the background behind it, on every page, both empty and filled. All text is at least 4.5:1. Body text is 13.2:1, muted text 5.3:1, errors 6.4:1, and white on the clay button 6.5:1.
+- **Screen readers:** the "Logged … · Undo" toast sits in a live region, and the weekly progress bar has a text value ("1h 15m of 10h"). Each day in the strip is read out ("Monday (today): 1h 15m").
+- **Motion:** animations are turned off for people who prefer reduced motion.
 
 ## First-run check
 
