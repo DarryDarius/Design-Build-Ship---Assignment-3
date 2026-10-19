@@ -2,7 +2,7 @@ import { formatMinutes, type Day } from "@/lib/week";
 
 /** Mon–Sun with a bar for each day's minutes. Empty days read as slots to fill. */
 export function WeekStrip({ days }: { days: Day[] }) {
-  const max = Math.max(60, ...days.map((d) => d.minutes));
+  const max = Math.max(120, ...days.map((d) => d.minutes)); // a 2-hour day fills the bar
   return (
     <ol className="grid grid-cols-7 gap-1.5 sm:gap-2" aria-label="Minutes per day this week">
       {days.map((d) => (
