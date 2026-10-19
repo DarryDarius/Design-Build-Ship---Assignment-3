@@ -5,8 +5,9 @@ import { useEffect } from "react";
 import { Button, ButtonLink } from "@/components/Button";
 import { Skeleton } from "@/components/EmptyState";
 import { WeekStrip } from "@/components/WeekStrip";
-import { addSession, markVisit, useStudyLog, useToday } from "@/lib/store";
-import { weekDays } from "@/lib/week";
+import { Progress } from "@/components/Progress";
+import { addSession, lastSession, markVisit, previousVisit, useStudyLog, useToday, type Data } from "@/lib/store";
+import { addDays, formatMinutes, GOAL_MINUTES, isSameWeek, pace, sessionsInWeek, total, weekDays, weekStart } from "@/lib/week";
 
 // One tap logs a real session, so the first visit is useful right away.
 const STARTERS = [
@@ -27,10 +28,12 @@ export function TodayView() {
   if (!store || !today) return <Skeleton />;
   const { sessions } = store.data;
 
-  const quickLog = (course: string, minutes: number) => {
-    const s = addSession({ course, minutes, place: "", date: today });
+  const quickLog = (course: string, minutes: number, place = "") => {
+    const s = addSession({ course, minutes, place, date: today });
     router.push(`/week?added=${s.id}`);
   };
+
+  if (sessions.length > 0) return <WelcomeBack data={store.data} today={today} onLog={quickLog} />;
 
   return (
     <div className="space-y-12">
@@ -64,6 +67,62 @@ export function TodayView() {
           <WeekStrip days={weekDays(sessions, today)} />
         </div>
         <p className="mt-3 text-sm text-calm-muted">Your week fills in as you log.</p>
+      </section>
+    </div>
+  );
+}
+
+/** Coming back: progress first, then the fastest way to log again. */
+function WelcomeBack({ data, today, onLog }: { data: Data; today: string; onLog: (course: string, minutes: number, place?: string) => void }) {
+  const { sessions } = data;
+  const week = sessionsInWeek(sessions, today);
+  const minutes = total(week);
+  const todayMinutes = total(sessions.filter((s) => s.date === today));
+  const left = Math.max(0, GOAL_MINUTES - minutes);
+  const diff = pace(minutes, today);
+  const last = lastSession(sessions)!;
+  const prev = previousVisit(data, today);
+  const newWeek = !!prev && !isSameWeek(prev, today);
+  const lastWeek = total(sessionsInWeek(sessions, addDays(weekStart(today), -1)));
+
+  const summary: string[] = [];
+  if (newWeek) summary.push("It’s a new week.");
+  if (newWeek && lastWeek > 0) summary.push(`Last week you studied ${formatMinutes(lastWeek)}.`);
+  if (todayMinutes > 0) summary.push(`You’ve studied ${formatMinutes(todayMinutes)} today.`);
+  else if (!newWeek) summary.push("Nothing logged today yet.");
+
+  const paceText =
+    minutes >= GOAL_MINUTES ? "Goal reached this week" : minutes === 0 && diff >= 0 ? "Fresh week" : diff >= 0 ? "On pace for 10 hours" : `${formatMinutes(-diff)} behind pace`;
+
+  return (
+    <div className="space-y-10">
+      <section>
+        <h1 className="font-display text-4xl leading-tight sm:text-5xl">{prev ? "Welcome back." : "Good start."}</h1>
+        <p className="mt-3 text-calm-muted">{summary.join(" ")}</p>
+      </section>
+
+      <section aria-label="This week's progress" className="space-y-5 rounded-xl border border-calm-border bg-calm-surface p-5 sm:p-6">
+        <Progress minutes={minutes} goal={GOAL_MINUTES} />
+        <p className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm">
+          <span className={diff >= 0 && minutes > 0 ? "font-medium text-calm-sage" : "text-calm-muted"}>{paceText}</span>
+          {left > 0 && <span className="text-calm-muted">{formatMinutes(left)} to go</span>}
+        </p>
+        <WeekStrip days={weekDays(sessions, today)} />
+      </section>
+
+      <section aria-labelledby="next-h">
+        <h2 id="next-h" className="font-medium">
+          Pick up where you left off
+        </h2>
+        <div className="mt-3 flex flex-wrap gap-3">
+          <Button onClick={() => onLog(last.course, last.minutes, last.place)}>
+            Log again: {last.course} · {last.minutes} min
+          </Button>
+          <ButtonLink href="/log" variant="secondary">
+            Log something else
+          </ButtonLink>
+        </div>
+        <p className="mt-3 text-sm text-calm-muted">Log again adds it for today.</p>
       </section>
     </div>
   );

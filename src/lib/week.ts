@@ -80,11 +80,11 @@ export function byCourse(sessions: Session[]) {
   return [...map].map(([course, minutes]) => ({ course, minutes })).sort((a, b) => b.minutes - a.minutes);
 }
 
-/** How far ahead or behind an even pace toward the goal, counting today. */
+/** How far ahead or behind an even pace toward the goal, by the end of yesterday. */
 export function pace(minutes: number, today: string) {
   const day = parse(today).getDay();
-  const daysIn = day === 0 ? 7 : day;
-  const expected = Math.round((GOAL_MINUTES * daysIn) / 7);
+  const daysDone = (day === 0 ? 7 : day) - 1; // today isn't over yet
+  const expected = Math.round((GOAL_MINUTES * daysDone) / 7);
   return minutes - expected;
 }
 

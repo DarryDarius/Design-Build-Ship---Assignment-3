@@ -12,6 +12,7 @@ export type Data = {
   version: 1;
   sessions: Session[];
   lastVisit?: string; // the last day the Today page was opened
+  prevVisit?: string; // the visit before that, for "Welcome back"
   draft?: Draft; // what was typed into the log form but not submitted
 };
 
@@ -36,6 +37,7 @@ function normalize(raw: unknown): Data {
     version: 1,
     sessions: sessions.map((s) => ({ ...s, place: typeof s.place === "string" ? s.place : "", createdAt: Number(s.createdAt) || 0 })),
     lastVisit: typeof r?.lastVisit === "string" && ISO.test(r.lastVisit) ? r.lastVisit : undefined,
+    prevVisit: typeof r?.prevVisit === "string" && ISO.test(r.prevVisit) ? r.prevVisit : undefined,
     draft: r?.draft && typeof r.draft === "object" ? (r.draft as Draft) : undefined,
   };
 }
@@ -120,8 +122,14 @@ export function saveDraft(draft: Draft | undefined) {
   update((d) => ({ ...d, draft }));
 }
 
+/** Record today's visit, keeping the previous visit day for "Welcome back". */
 export function markVisit(today: string) {
-  if (getState().data.lastVisit !== today) update((d) => ({ ...d, lastVisit: today }));
+  if (getState().data.lastVisit !== today) update((d) => ({ ...d, prevVisit: d.lastVisit, lastVisit: today }));
+}
+
+/** The last day before today that this person opened Today, if any. */
+export function previousVisit(d: Data, today: string) {
+  return d.lastVisit === today ? d.prevVisit : d.lastVisit;
 }
 
 /** The most recently logged session, for prefilling and "Log again". */
