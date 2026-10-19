@@ -1,4 +1,5 @@
 import type { Draft } from "./store";
+import { earliestDay } from "./week";
 
 export type FieldName = "course" | "minutes" | "date";
 export type Errors = Partial<Record<FieldName, string>>;
@@ -17,6 +18,7 @@ export function validateSession(d: Draft, today: string): Errors {
 
   if (!d.date) errors.date = "Pick the day you studied.";
   else if (d.date > today) errors.date = "Pick today or an earlier day.";
+  else if (d.date < earliestDay(today)) errors.date = "Pick a day this week or last week.";
 
   return errors;
 }

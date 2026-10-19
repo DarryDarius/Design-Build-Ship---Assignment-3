@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { focusRing } from "@/components/styles";
 import { ButtonLink } from "@/components/Button";
 import { EmptyState, Skeleton } from "@/components/EmptyState";
 import { Progress } from "@/components/Progress";
@@ -21,9 +23,9 @@ import {
   type Session,
 } from "@/lib/week";
 
-function rangeLabel(today: string) {
+function rangeLabel(anyDay: string) {
   const fmt = (iso: string) => new Date(`${iso}T12:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  const start = weekStart(today);
+  const start = weekStart(anyDay);
   return `${fmt(start)} – ${fmt(addDays(start, 6))}`;
 }
 
@@ -31,21 +33,31 @@ export function WeekView() {
   const store = useStudyLog();
   const today = useToday();
   const router = useRouter();
-  const added = useSearchParams().get("added");
+  const params = useSearchParams();
+  const added = params.get("added");
+  const showLast = params.get("week") === "last";
+  const here = showLast ? "/week?week=last" : "/week";
   const [undone, setUndone] = useState<Session | null>(null);
+  const undoRef = useRef<HTMLButtonElement>(null);
 
   const sessions = store?.data.sessions ?? [];
   const addedSession = added ? sessions.find((s) => s.id === added) : undefined;
 
+  // Right after saving, put keyboard focus on Undo so a mistaken save is one key away.
+  const toastFor = store && today ? addedSession?.id : undefined;
+  useEffect(() => {
+    if (toastFor) undoRef.current?.focus();
+  }, [toastFor]);
+
   function undo(s: Session) {
     removeSession(s.id);
     setUndone(s);
-    router.replace("/week", { scroll: false });
+    router.replace(here, { scroll: false });
   }
 
   function dismiss() {
     setUndone(null);
-    router.replace("/week", { scroll: false });
+    router.replace(here, { scroll: false });
   }
 
   const toast = undone ? (
@@ -56,12 +68,13 @@ export function WeekView() {
     <Toast
       onDismiss={dismiss}
       action={
-        <button type="button" className={toastAction} onClick={() => undo(addedSession)}>
+        <button ref={undoRef} type="button" className={toastAction} onClick={() => undo(addedSession)}>
           Undo
         </button>
       }
     >
-      Logged {addedSession.minutes} min of {addedSession.course}.
+      Logged {addedSession.minutes} min of {addedSession.course}
+      {today && addedSession.date !== today && (addedSession.date === addDays(today, -1) ? " yesterday" : ` on ${formatDay(addedSession.date, today)}`)}.
     </Toast>
   ) : null;
 
@@ -71,25 +84,41 @@ export function WeekView() {
       <div aria-live="polite" aria-atomic="true">
         {store && today && toast}
       </div>
-      {!store || !today ? <Skeleton /> : <Week sessions={sessions} today={today} highlight={addedSession?.id} />}
+      {!store || !today ? <Skeleton /> : <Week sessions={sessions} today={today} showLast={showLast} highlight={addedSession?.id} />}
       {/* Room at the bottom so the toast never covers the last row. */}
       {toast && <div aria-hidden className="h-20" />}
     </>
   );
 }
 
-function Week({ sessions, today, highlight }: { sessions: Session[]; today: string; highlight?: string }) {
-  const week = sessionsInWeek(sessions, today);
+const weekLink = `inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-sm text-calm-muted hover:bg-calm-surface hover:text-calm-text ${focusRing}`;
+
+function Week({ sessions, today, showLast, highlight }: { sessions: Session[]; today: string; showLast: boolean; highlight?: string }) {
+  // "Last week" shows the days before this Monday, so a session logged for Sunday is never out of sight.
+  const anchor = showLast ? addDays(weekStart(today), -1) : today;
+  const week = sessionsInWeek(sessions, anchor);
   const lastWeek = total(sessionsInWeek(sessions, addDays(weekStart(today), -1)));
   const minutes = total(week);
+  const title = showLast ? "Last week" : "This week";
 
   const header = (
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="font-display text-4xl leading-tight">This week</h1>
-        <p className="mt-1 text-calm-muted">{rangeLabel(today)}</p>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-4xl leading-tight">{title}</h1>
+          <p className="mt-1 text-calm-muted">{rangeLabel(anchor)}</p>
+        </div>
+        {week.length > 0 && !showLast && <ButtonLink href="/log">Log a session</ButtonLink>}
       </div>
-      {week.length > 0 && <ButtonLink href="/log">Log a session</ButtonLink>}
+      {showLast ? (
+        <Link href="/week" className={weekLink}>
+          Back to this week <span aria-hidden>→</span>
+        </Link>
+      ) : (
+        <Link href="/week?week=last" className={weekLink}>
+          <span aria-hidden>←</span> Last week{lastWeek > 0 ? ` · ${formatMinutes(lastWeek)}` : ""}
+        </Link>
+      )}
     </div>
   );
 
@@ -97,10 +126,14 @@ function Week({ sessions, today, highlight }: { sessions: Session[]; today: stri
     return (
       <div className="space-y-8">
         {header}
-        <EmptyState title="No sessions this week yet" action={<ButtonLink href="/log">Log a session</ButtonLink>}>
-          {lastWeek > 0 ? `Last week you studied ${formatMinutes(lastWeek)}. Log one to start this week.` : "Log one and it shows up here."}
+        <EmptyState title={showLast ? "Nothing logged last week" : "No sessions this week yet"} action={<ButtonLink href="/log">Log a session</ButtonLink>}>
+          {showLast
+            ? "You can still add a session from last week in the form."
+            : lastWeek > 0
+              ? `Last week you studied ${formatMinutes(lastWeek)}. Log one to start this week.`
+              : "Log one and it shows up here."}
         </EmptyState>
-        <WeekStrip days={weekDays(sessions, today)} />
+        <WeekStrip days={weekDays(sessions, anchor, today)} />
       </div>
     );
 
@@ -112,9 +145,8 @@ function Week({ sessions, today, highlight }: { sessions: Session[]; today: stri
       {header}
 
       <section aria-label="Progress" className="space-y-6 rounded-xl border border-calm-border bg-calm-surface p-5 sm:p-6">
-        <Progress minutes={minutes} goal={GOAL_MINUTES} />
-        <WeekStrip days={weekDays(sessions, today)} />
-        {lastWeek > 0 && <p className="text-sm text-calm-muted">Last week: {formatMinutes(lastWeek)}</p>}
+        <Progress minutes={minutes} goal={GOAL_MINUTES} period={showLast ? "last week" : "this week"} />
+        <WeekStrip days={weekDays(sessions, anchor, today)} />
       </section>
 
       <section aria-labelledby="sessions-h">

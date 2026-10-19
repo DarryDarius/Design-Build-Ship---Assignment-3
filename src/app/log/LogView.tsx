@@ -9,7 +9,7 @@ import { describedBy, Field, Input, Select } from "@/components/Field";
 import { PLACES } from "@/lib/places";
 import { addSession, lastSession, saveDraft, useStudyLog, useToday, type Draft } from "@/lib/store";
 import { FIELD_ORDER, validateSession } from "@/lib/validate";
-import { addDays, type Session } from "@/lib/week";
+import { addDays, earliestDay, isSameWeek, type Session } from "@/lib/week";
 
 export function LogView() {
   const store = useStudyLog();
@@ -18,9 +18,11 @@ export function LogView() {
 
   const { sessions, draft } = store.data;
   const last = lastSession(sessions);
-  // Pick up an unfinished draft, or prefill from the last session.
+  // Pick up an unfinished draft, or prefill from the last session. The course
+  // starts empty (typing into a prefilled name appended to it); recent courses
+  // are one tap away as chips.
   const initial: Draft = draft ?? {
-    course: last?.course ?? "",
+    course: "",
     minutes: last ? String(last.minutes) : "",
     place: last?.place ?? "",
     date: today,
@@ -64,7 +66,7 @@ function LogForm({ initial, sessions, today }: { initial: Draft; sessions: Sessi
     }
     const s = addSession({ course: values.course.trim(), minutes: Number(values.minutes), place: values.place, date: values.date });
     saveDraft(undefined);
-    router.push(`/week?added=${s.id}`);
+    router.push(isSameWeek(s.date, today) ? `/week?added=${s.id}` : `/week?week=last&added=${s.id}`);
   }
 
   return (
@@ -122,6 +124,7 @@ function LogForm({ initial, sessions, today }: { initial: Draft; sessions: Sessi
             inputMode="numeric"
             autoComplete="off"
             className="max-w-32"
+            onFocus={(e) => e.target.select()}
             value={values.minutes}
             onChange={(e) => set("minutes", e.target.value)}
             invalid={!!errors.minutes}
@@ -144,6 +147,7 @@ function LogForm({ initial, sessions, today }: { initial: Draft; sessions: Sessi
               id="date"
               name="date"
               type="date"
+              min={earliestDay(today)}
               max={today}
               className="max-w-48"
               value={values.date}

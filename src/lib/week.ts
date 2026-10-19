@@ -46,6 +46,11 @@ export function weekStart(iso: string) {
   return addDays(iso, day === 0 ? -6 : 1 - day);
 }
 
+/** Monday of last week: the oldest day you can log, so nothing lands out of sight. */
+export function earliestDay(today: string) {
+  return addDays(weekStart(today), -7);
+}
+
 export function isSameWeek(a: string, b: string) {
   return weekStart(a) === weekStart(b);
 }
@@ -58,8 +63,8 @@ export function sessionsInWeek(sessions: Session[], anyDayIso: string) {
 
 export const total = (sessions: Session[]) => sessions.reduce((sum, s) => sum + s.minutes, 0);
 
-export function weekDays(sessions: Session[], today: string): Day[] {
-  const start = weekStart(today);
+export function weekDays(sessions: Session[], anyDay: string, today = anyDay): Day[] {
+  const start = weekStart(anyDay);
   return Array.from({ length: 7 }, (_, i) => {
     const date = addDays(start, i);
     const d = parse(date);
@@ -78,6 +83,13 @@ export function byCourse(sessions: Session[]) {
   const map = new Map<string, number>();
   for (const s of sessions) map.set(s.course, (map.get(s.course) ?? 0) + s.minutes);
   return [...map].map(([course, minutes]) => ({ course, minutes })).sort((a, b) => b.minutes - a.minutes);
+}
+
+/** Minutes a day, from today through Sunday, that would still reach the goal. */
+export function perDayToGoal(minutes: number, today: string) {
+  const day = parse(today).getDay();
+  const daysLeft = 7 - (day === 0 ? 7 : day) + 1; // including today
+  return Math.ceil(Math.max(0, GOAL_MINUTES - minutes) / daysLeft);
 }
 
 /** How far ahead or behind an even pace toward the goal, by the end of yesterday. */

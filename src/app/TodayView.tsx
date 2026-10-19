@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/EmptyState";
 import { WeekStrip } from "@/components/WeekStrip";
 import { Progress } from "@/components/Progress";
 import { addSession, lastSession, markVisit, previousVisit, useStudyLog, useToday, type Data } from "@/lib/store";
-import { addDays, formatMinutes, GOAL_MINUTES, isSameWeek, pace, sessionsInWeek, total, weekDays, weekStart } from "@/lib/week";
+import { addDays, formatMinutes, GOAL_MINUTES, isSameWeek, pace, perDayToGoal, sessionsInWeek, total, weekDays, weekStart } from "@/lib/week";
 
 // One tap logs a real session, so the first visit is useful right away.
 const STARTERS = [
@@ -91,8 +91,13 @@ function WelcomeBack({ data, today, onLog }: { data: Data; today: string; onLog:
   if (todayMinutes > 0) summary.push(`You’ve studied ${formatMinutes(todayMinutes)} today.`);
   else if (!newWeek) summary.push("Nothing logged today yet.");
 
+  // Behind pace is framed as what's still doable, not as a shortfall.
   const paceText =
-    minutes >= GOAL_MINUTES ? "Goal reached this week" : minutes === 0 && diff >= 0 ? "Fresh week" : diff >= 0 ? "On pace for 10 hours" : `${formatMinutes(-diff)} behind pace`;
+    minutes >= GOAL_MINUTES
+      ? "Goal reached this week"
+      : diff >= 0 && minutes > 0
+        ? "On pace for 10 hours"
+        : `About ${formatMinutes(perDayToGoal(minutes, today))} a day reaches 10h by Sunday`;
 
   return (
     <div className="space-y-10">

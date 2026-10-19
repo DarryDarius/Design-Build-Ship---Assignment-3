@@ -1,13 +1,15 @@
 import { formatMinutes } from "@/lib/week";
 
 /** Minutes toward the weekly goal, as text and a bar. */
-export function Progress({ minutes, goal }: { minutes: number; goal: number }) {
+export function Progress({ minutes, goal, period = "this week" }: { minutes: number; goal: number; period?: string }) {
   const pct = Math.min(100, Math.round((minutes / goal) * 100));
   return (
     <div>
       <p className="flex items-baseline justify-between gap-3">
         <span className="font-display text-3xl text-calm-text tabular-nums">{formatMinutes(minutes)}</span>
-        <span className="text-sm text-calm-muted">of {formatMinutes(goal)} this week</span>
+        <span className="text-sm text-calm-muted">
+          of {formatMinutes(goal)} {period}
+        </span>
       </p>
       <div
         role="progressbar"

@@ -1,8 +1,17 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, type ReactNode } from "react";
 import { focusRing } from "./styles";
 
 /** Confirmation after an action, with an optional undo. Stays until dismissed. */
 export function Toast({ children, action, onDismiss }: { children: ReactNode; action?: ReactNode; onDismiss: () => void }) {
+  // Esc closes it from anywhere on the page.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onDismiss();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onDismiss]);
+
   return (
     <div className="animate-rise fixed inset-x-4 bottom-4 z-10 mx-auto flex max-w-md items-center gap-3 rounded-lg bg-calm-text py-2 pr-2 pl-4 text-sm text-calm-surface sm:bottom-6">
       <svg viewBox="0 0 12 12" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>

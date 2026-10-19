@@ -72,7 +72,31 @@ I had the agent check the production build in a real browser with Playwright, at
 
 ## First-run check
 
-_To be filled in after deploy: an agent tries the live tool as a brand-new user._
+After deploying, I gave a separate agent only the live URL and a goal: *"You're a university student. Log three study sessions you did this week. Then come back later and use it again."* It hadn't seen the code. It drove a real browser at phone and desktop sizes, made honest mistakes on purpose, used only the keyboard for one full path, and moved the clock forward to come back on later days.
+
+**First impression (in its words):** "It's a study timer-log with a 10-hour weekly goal. The big question 'What did you study today?' and the 'Log a session' button tell me what to do right away."
+
+**What worked:**
+- The form is short, and the chips make it fast.
+- Errors sit next to the field and say what to do. Typed input is kept, and focus moves to the first error.
+- After saving you land on the week with the new session highlighted, and Undo works.
+- The week view is easy to read.
+- Keyboard use works, with visible focus throughout.
+
+**What it found, and what I changed:**
+
+| Severity | Finding | Change |
+|---|---|---|
+| High | On a Monday, logging "Yesterday" (Sunday) said "Logged" but the week page showed nothing, because the session was in last week. A mistyped year was accepted and then unreachable. | Added a **Last week** view; saving a session from last week goes straight there. The toast now names the day ("…yesterday."). The day must be this week or last week ("Pick a day this week or last week."). |
+| Medium | The form prefilled the last course, so tapping and typing produced "Organic ChemCalculus II". | The course field starts empty, and recent courses are one-tap chips. Minutes are still prefilled and select all on focus, so typing replaces them. |
+| Medium | "Log again" saves in one press, and a stray Enter made a duplicate. | After any save, keyboard focus lands on **Undo**, so a mistake is one key away. |
+| Low | The toast couldn't be closed with Esc. | Esc closes it. |
+| Low | "3h 54m behind pace" read like a scolding. | Reframed as what's still doable: "About 1h 05m a day reaches 10h by Sunday". |
+| High | You can't edit or delete a session once the toast is gone. | Not changed for now. In planning I chose Undo only and left out delete to keep the tool simple. *(Decision pending.)* |
+
+**On coming back, it said:** "Partly. 'Welcome back', the week bars and a one-tap 'Log again' make logging again obvious and quick." It wanted to see last week (now added) and suggested history and per-course patterns as next steps.
+
+Every fix was checked again in the browser, and the full test suite passes on the live site.
 
 ## Run it
 
