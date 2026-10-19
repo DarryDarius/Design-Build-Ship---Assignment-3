@@ -13,6 +13,7 @@ export function Field({
   hint,
   error,
   children,
+  after,
 }: {
   id: string;
   label: string;
@@ -20,6 +21,8 @@ export function Field({
   hint?: ReactNode;
   error?: string;
   children: ReactNode;
+  /** Shortcuts like chips, placed below the error so the error stays next to the input. */
+  after?: ReactNode;
 }) {
   return (
     <div>
@@ -42,6 +45,7 @@ export function Field({
           {error}
         </p>
       )}
+      {after && <div className="mt-2.5">{after}</div>}
     </div>
   );
 }
