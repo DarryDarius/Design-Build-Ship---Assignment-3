@@ -2,7 +2,7 @@
 
 Log your study sessions and watch them add up toward a weekly goal. Built for MPCS 51238 Design, Build, Ship, Assignment 3 (Patterns & Flows).
 
-**Live:** _deploying soon_ · **Style:** the Calm design system from [Assignment 2](https://study-spots-alpha.vercel.app/design-systems/calm)
+**Live:** https://study-log-ashy.vercel.app · **Style:** the Calm design system from [Assignment 2](https://study-spots-alpha.vercel.app/design-systems/calm)
 
 ## Who it's for
 
